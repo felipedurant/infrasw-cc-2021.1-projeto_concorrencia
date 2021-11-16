@@ -18,15 +18,21 @@ public class Scrubber extends Thread {
     public void run() {
 
         int t=0;
-        if(lastTime>-1){
-            long time = System.nanoTime();
-            currTime += (lastTime-time);
-            lastTime = time;
-        }
-
-        t = (int)(currTime * 1000000);
 
         window.updateMiniplayer(true, player.playing, false,t, player.currentSongTime, player.currentSong, player.songCount);
+
+        try{
+            while (t < player.currentSongTime){
+                Thread.sleep(1000);
+                if(player.playing){
+                    t += 1;
+                }
+                window.updateMiniplayer(true, player.playing, false,t, player.currentSongTime, player.currentSong, player.songCount);
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
     }
 }

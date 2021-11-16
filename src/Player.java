@@ -98,8 +98,11 @@ public class Player {
                 window.updatePlayingSongInfo(
                         queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
 
+                if(scrubber!=null && scrubber.isAlive()){
+                    scrubber.interrupt();
+                }
                 scrubber = new Scrubber(window,this);
-                scrubber.run();
+                scrubber.start();
             }
 
 
@@ -114,7 +117,7 @@ public class Player {
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,
                 btnPlayPause, null, null, null,
                 null, null, null, null,
-                "Nome janela", null);
+                "Tocador de musicas", null);
 
         window.start();
     }
