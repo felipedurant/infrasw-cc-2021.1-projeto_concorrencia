@@ -16,8 +16,11 @@ public class Player {
     int songCount = 0;
     int[] songIDs;
     // array das musicas
-    String[][] queueArray;
+    public String[][] queueArray;
     Boolean playing = false;
+    Scrubber scrubber;
+    public int currentSong = -1;
+    public int currentSongTime = -1;
 
     public Player() {
 
@@ -77,19 +80,44 @@ public class Player {
         };
 
         ActionListener btnPlayNow = e -> {
-            playing = !playing;
+            playing = true;
             window.updatePlayPauseButton(playing);
             window.enableScrubberArea();
 
+            int selected = -1;
+            for (int i = 0; i < songIDs.length;i++){
+                if(songIDs[i] == window.getSelectedSongID()){
+                    selected = i;
+                    break;
+                }
+            }
+
+            if(selected > -1){
+                currentSong = selected;
+                currentSongTime = Integer.parseInt(queueArray[selected][5]);
+                window.updatePlayingSongInfo(
+                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
+
+                scrubber = new Scrubber(window,this);
+                scrubber.run();
+            }
+
+
+        };
+
+        ActionListener btnPlayPause = e -> {
+            playing = !playing;
+            window.updatePlayPauseButton(playing);
         };
 
 
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,
-                null, null, null, null,
+                btnPlayPause, null, null, null,
                 null, null, null, null,
                 "Nome janela", null);
 
         window.start();
     }
 }
+
 
