@@ -37,11 +37,32 @@ public class Player {
             songCount++;
         };
 
-        ActionListener btnAddSong = e ->{
-            addSongWindow = new AddSongWindow(Integer.toString(songID), btnAddSongOK, window.getAddSongWindowListener());
+        ActionListener btnRemove = e -> {
+            // cria um array temp com uma posicao a mais e copia o antigo
+            int remove = window.getSelectedSongID();
+            String[][] queueTemp = new String[songCount-1][];
+            for (int i = 0; i < queueTemp.length;i++){
+                if(i < remove)
+                    queueTemp[i] = queueArray[i];
+                else
+                    queueTemp[i] = queueArray[i+1];
+            }
+            window.updateQueueList(queueTemp);
+            queueArray=queueTemp;
+            songCount--;
+
+            //System.out.println(window.getSelectedSongID());
+
         };
 
-        window = new PlayerWindow(null, null, btnAddSong,
+        ActionListener btnAddSong = e ->{
+            addSongWindow = new AddSongWindow(Integer.toString(songID), btnAddSongOK, window.getAddSongWindowListener());
+            addSongWindow.start();
+        };
+
+
+
+        window = new PlayerWindow(null, btnRemove, btnAddSong,
                 null, null, null, null,
                 null, null, null, null,
                 "Nome janela", null);
