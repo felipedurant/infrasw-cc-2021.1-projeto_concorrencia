@@ -55,6 +55,12 @@ public class Player {
 
             Boolean skip = false;
 
+            if(currentSong > -1 && songIDs[currentSong] == remove){
+                if(scrubber.isAlive())
+                    scrubber.interrupt();
+                window.resetMiniPlayer();
+            }
+
             for (int i = 0; i < queueTemp.length;i++){
                 if(songIDs[i] == remove){
                     skip = true;
@@ -64,6 +70,11 @@ public class Player {
                     songIDsTemp[i] = songIDs[i];
                 }
                 else{
+                    if(currentSong == i+1){
+                        System.out.println(currentSong);
+                        currentSong -=1;
+                        System.out.println(currentSong);
+                    }
                     queueTemp[i] = queueArray[i+1];
                     songIDsTemp[i] = songIDs[i+1];
                 }
