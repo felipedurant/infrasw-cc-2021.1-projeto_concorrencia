@@ -53,14 +53,18 @@ public class Player {
             String[][] queueTemp = new String[songCount - 1][];
             int[] songIDsTemp = new int[songCount - 1];
 
+
+            //Ajuda na varredura da lista de músicas
             Boolean skip = false;
 
+            //Verifica se a música removida está sendo, também, reproduzida
             if(currentSong > -1 && songIDs[currentSong] == remove){
                 if(scrubber.isAlive())
                     scrubber.interrupt();
                 window.resetMiniPlayer();
             }
 
+            //Varredura da lista de músicas para achar a música que será removida
             for (int i = 0; i < queueTemp.length;i++){
                 if(songIDs[i] == remove){
                     skip = true;
@@ -85,11 +89,13 @@ public class Player {
             songCount--;
         };
 
+        //Comando de adicionar música
         ActionListener btnAddSong = e ->{
             addSongWindow = new AddSongWindow(Integer.toString(songID), btnAddSongOK, window.getAddSongWindowListener());
             addSongWindow.start();
         };
 
+        //Comando de Play Now
         ActionListener btnPlayNow = e -> {
             playing = true;
             window.updatePlayPauseButton(playing);
@@ -103,6 +109,7 @@ public class Player {
                 }
             }
 
+            //Inicia a reprodução da música e a thread
             if(selected > -1){
                 currentSong = selected;
                 currentSongTime = Integer.parseInt(queueArray[selected][5]);
@@ -119,6 +126,7 @@ public class Player {
 
         };
 
+        //Alterna entre play e pause
         ActionListener btnPlayPause = e -> {
             playing = !playing;
             window.updatePlayPauseButton(playing);
