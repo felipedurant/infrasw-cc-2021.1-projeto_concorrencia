@@ -1,17 +1,19 @@
 import ui.PlayerWindow;
 
+import java.awt.event.MouseMotionListener;
+
 
 // thread para cuidar do reloginho da musica
 public class Scrubber extends Thread {
 
-    PlayerWindow window;
-    Player player;
+    public PlayerWindow wind;
+    public Player play;
 
     long lastTime =-1;
     long currTime = 0;
     public Scrubber(PlayerWindow playerWindow, Player pl){
-        window = playerWindow;
-        player = pl;
+        wind = playerWindow;
+        play = pl;
     }
 
     @Override
@@ -19,18 +21,20 @@ public class Scrubber extends Thread {
 
         int t=0;
 
-        window.updateMiniplayer(true, player.playing, false,t, player.currentSongTime, player.currentSong, player.songCount);
+        wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
 
         try{
-            while (t < player.currentSongTime){
+            while (t < play.currentSongTime){
                 Thread.sleep(1000);
-                if(player.playing){
+                if(play.playing){
                     t += 1;
                 }
-                window.updateMiniplayer(true, player.playing, false,t, player.currentSongTime, player.currentSong, player.songCount);
+                wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
             }
 
-        } catch (InterruptedException e) {
+        }
+
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
 
