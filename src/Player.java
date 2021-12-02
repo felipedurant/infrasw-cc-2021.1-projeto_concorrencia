@@ -20,6 +20,7 @@ public class Player {
     Boolean playing = false;
     Scrubber scrubber;
     public int currentSong = -1;
+    public int selected = -1;
     public int currentSongTime = -1;
 
     public Player() {
@@ -55,7 +56,7 @@ public class Player {
 
 
             //Ajuda na varredura da lista de músicas
-            Boolean skip = false;
+            boolean skip = false;
 
             //Verifica se a música removida está sendo, também, reproduzida
             if(currentSong > -1 && songIDs[currentSong] == remove){
@@ -101,7 +102,6 @@ public class Player {
             window.updatePlayPauseButton(playing);
             window.enableScrubberArea();
 
-            int selected = -1;
             for (int i = 0; i < songIDs.length;i++){
                 if(songIDs[i] == window.getSelectedSongID()){
                     selected = i;
@@ -132,9 +132,82 @@ public class Player {
             window.updatePlayPauseButton(playing);
         };
 
+        ActionListener btnNext = e -> {
+            selected += 1;
+
+            currentSong = selected;
+            //encerrando música que foi passada
+            if(scrubber!=null && scrubber.isAlive()){
+                scrubber.interrupt();
+            }
+            //iniciar próxima música
+            currentSongTime = Integer.parseInt(queueArray[selected][5]);
+            window.updatePlayingSongInfo(
+                    queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
+
+            scrubber = new Scrubber(window,this);
+            scrubber.start();
+            playing = true;
+
+
+        };
+
+        ActionListener btnPrevious = e -> {
+            selected -= 1;
+
+            currentSong = selected;
+            //encerrando música que foi passada
+            if(scrubber!=null && scrubber.isAlive()){
+                scrubber.interrupt();
+            }
+            //iniciar próxima música
+            currentSongTime = Integer.parseInt(queueArray[selected][5]);
+            window.updatePlayingSongInfo(
+                    queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
+
+            scrubber = new Scrubber(window,this);
+            scrubber.start();
+            playing = true;
+
+            /* IMPLEMENTAÇÃO DE UM PREVIOUS QUE NO PRIMEIRO CLIQUE PAUSA A MÚSICA NO INÍCIO E NO SEGUNDO VOLTA A MÚSICA
+            if (currentSongTime > 0) {
+
+                if(scrubber!=null && scrubber.isAlive()){
+                    scrubber.interrupt();
+                }
+                currentSongTime = Integer.parseInt(queueArray[selected][5]);
+                window.updatePlayingSongInfo(
+                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
+
+                scrubber = new Scrubber(window, this);
+                scrubber.start();
+                playing = false;
+                window.updatePlayPauseButton(playing);
+            }
+            else {
+                selected -= 1;
+
+                currentSong = selected;
+
+                scrubber.interrupt();
+
+                //iniciar música anterior
+                currentSongTime = Integer.parseInt(queueArray[selected][5]);
+                window.updatePlayingSongInfo(
+                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
+
+                scrubber = new Scrubber(window,this);
+                scrubber.start();
+                playing = true;
+
+
+            }
+            */
+
+        };
 
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,
-                btnPlayPause, null, null, null,
+                btnPlayPause, null, btnNext, btnPrevious,
                 null, null, null, null,
                 "Tocador de musicas", null);
 
