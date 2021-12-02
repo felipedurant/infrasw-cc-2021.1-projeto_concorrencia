@@ -3,6 +3,10 @@ import ui.PlayerWindow;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+
 
 public class Player {
 
@@ -206,10 +210,23 @@ public class Player {
 
         };
 
-        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,
-                btnPlayPause, null, btnNext, btnPrevious,
-                null, null, null, null,
-                "Tocador de musicas", null);
+        //Consegue mudar o tempo do relógio quando arrasta mas não consegue mudar na thread
+        MouseMotionListener scrubberMotion = new MouseMotionListener() {
+            //Relativo a arrastar o slider
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+
+            }
+            //Relativo a clicar em alguma parte da barra
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+
+            }
+        };
+
+        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, null, btnNext, btnPrevious,null, null, null,scrubberMotion,"Tocador de musicas", null);
 
         window.start();
     }
