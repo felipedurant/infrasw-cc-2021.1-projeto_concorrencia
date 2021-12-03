@@ -15,11 +15,12 @@ public class Scrubber extends Thread {
         wind = playerWindow;
         play = pl;
     }
+    public int t;
 
     @Override
     public void run() {
 
-        int t=0;
+        t=0;
 
         wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
 

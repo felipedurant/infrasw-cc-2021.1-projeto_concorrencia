@@ -216,13 +216,11 @@ public class Player {
             @Override
             public void mouseDragged(MouseEvent e) {
                 window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
-
+                scrubber.t = window.getScrubberValue();
             }
             //Relativo a clicar em alguma parte da barra
             @Override
             public void mouseMoved(MouseEvent e) {
-                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
-
             }
         };
 
