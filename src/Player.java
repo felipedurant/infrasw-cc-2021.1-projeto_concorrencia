@@ -9,7 +9,6 @@ import java.awt.event.MouseMotionListener;
 
 
 public class Player {
-
     AddSongWindow addSongWindow;
     PlayerWindow window;
 
@@ -173,41 +172,13 @@ public class Player {
             scrubber.start();
             playing = true;
 
-            /* IMPLEMENTAÇÃO DE UM PREVIOUS QUE NO PRIMEIRO CLIQUE PAUSA A MÚSICA NO INÍCIO E NO SEGUNDO VOLTA A MÚSICA
-            if (currentSongTime > 0) {
+        };
 
-                if(scrubber!=null && scrubber.isAlive()){
-                    scrubber.interrupt();
-                }
-                currentSongTime = Integer.parseInt(queueArray[selected][5]);
-                window.updatePlayingSongInfo(
-                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
-
-                scrubber = new Scrubber(window, this);
-                scrubber.start();
-                playing = false;
-                window.updatePlayPauseButton(playing);
-            }
-            else {
-                selected -= 1;
-
-                currentSong = selected;
-
+        ActionListener btnStop = e -> {
+            if(scrubber!=null && scrubber.isAlive()){
                 scrubber.interrupt();
-
-                //iniciar música anterior
-                currentSongTime = Integer.parseInt(queueArray[selected][5]);
-                window.updatePlayingSongInfo(
-                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
-
-                scrubber = new Scrubber(window,this);
-                scrubber.start();
-                playing = true;
-
-
             }
-            */
-
+            window.resetMiniPlayer();
         };
 
         //Consegue mudar o tempo do relógio quando arrasta mas não consegue mudar na thread
@@ -218,13 +189,41 @@ public class Player {
                 window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
                 scrubber.t = window.getScrubberValue();
             }
-            //Relativo a clicar em alguma parte da barra
             @Override
             public void mouseMoved(MouseEvent e) {
             }
         };
 
-        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, null, btnNext, btnPrevious,null, null, null,scrubberMotion,"Tocador de musicas", null);
+        MouseListener mouseClick = new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+                scrubber.t = window.getScrubberValue();
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        };
+
+
+        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious,null, null, mouseClick ,scrubberMotion,"Tocador de musicas", null);
 
         window.start();
     }
