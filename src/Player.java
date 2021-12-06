@@ -12,6 +12,47 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+class PlayNow extends Thread {
+    Player player;
+    public PlayNow (Player player) {
+        this.player= player;
+    }
+
+    @Override
+    public void run(){
+        player.lock.lock();
+
+        try {
+            player.playing = true;
+            player.window.updatePlayPauseButton(player.playing);
+            player.window.enableScrubberArea();
+
+            for (int i = 0; i < player.songIDs.length;i++){
+                if(player.songIDs[i] == player.window.getSelectedSongID()){
+                    player.selected = i;
+                    break;
+                }
+            }
+
+            //Inicia a reprodução da música e a thread
+            if(player.selected > -1){
+                player.currentSong = player.selected;
+                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+                player.window.updatePlayingSongInfo(
+                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+
+                if(player.scrubber!=null && player.scrubber.isAlive()){
+                    player.scrubber.interrupt();
+                }
+                player.scrubber = new Scrubber(player.window,player);
+                player.scrubber.start();
+            }
+        } finally {
+            player.lock.unlock();
+        }
+    }
+
+}
 
 class RemoveSong extends Thread{
 
@@ -131,31 +172,8 @@ public class Player {
 
         //Comando de Play Now
         ActionListener btnPlayNow = e -> {
-            playing = true;
-            window.updatePlayPauseButton(playing);
-            window.enableScrubberArea();
-
-            for (int i = 0; i < songIDs.length;i++){
-                if(songIDs[i] == window.getSelectedSongID()){
-                    selected = i;
-                    break;
-                }
-            }
-
-            //Inicia a reprodução da música e a thread
-            if(selected > -1){
-                currentSong = selected;
-                currentSongTime = Integer.parseInt(queueArray[selected][5]);
-                window.updatePlayingSongInfo(
-                        queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
-
-                if(scrubber!=null && scrubber.isAlive()){
-                    scrubber.interrupt();
-                }
-                scrubber = new Scrubber(window,this);
-                scrubber.start();
-            }
-
+            PlayNow playnow = new PlayNow(this);
+            playnow.start();
 
         };
 
