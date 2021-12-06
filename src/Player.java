@@ -12,47 +12,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-class PlayNow extends Thread {
-    Player player;
-    public PlayNow (Player player) {
-        this.player= player;
-    }
 
-    @Override
-    public void run(){
-        player.lock.lock();
-
-        try {
-            player.playing = true;
-            player.window.updatePlayPauseButton(player.playing);
-            player.window.enableScrubberArea();
-
-            for (int i = 0; i < player.songIDs.length;i++){
-                if(player.songIDs[i] == player.window.getSelectedSongID()){
-                    player.selected = i;
-                    break;
-                }
-            }
-
-            //Inicia a reprodução da música e a thread
-            if(player.selected > -1){
-                player.currentSong = player.selected;
-                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
-                player.window.updatePlayingSongInfo(
-                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
-
-                if(player.scrubber!=null && player.scrubber.isAlive()){
-                    player.scrubber.interrupt();
-                }
-                player.scrubber = new Scrubber(player.window,player);
-                player.scrubber.start();
-            }
-        } finally {
-            player.lock.unlock();
-        }
-    }
-
-}
 
 public class Player {
 
@@ -84,7 +44,6 @@ public class Player {
         };
 
         ActionListener btnRemove = e -> {
-
             RemoveSong removeSong = new RemoveSong(this);
             removeSong.start();
         };
@@ -99,13 +58,12 @@ public class Player {
         ActionListener btnPlayNow = e -> {
             PlayNow playnow = new PlayNow(this);
             playnow.start();
-
         };
 
         //Alterna entre play e pause
         ActionListener btnPlayPause = e -> {
-            playing = !playing;
-            window.updatePlayPauseButton(playing);
+            PauseSong pauseSong = new PauseSong(this);
+            pauseSong.start();
         };
 
         ActionListener btnNext = e -> {
@@ -120,10 +78,8 @@ public class Player {
         };
 
         ActionListener btnStop = e -> {
-            if(scrubber!=null && scrubber.isAlive()){
-                scrubber.interrupt();
-            }
-            window.resetMiniPlayer();
+            StopSong stopSong = new StopSong(this);
+            stopSong.start();
         };
 
         //Consegue mudar o tempo do relógio quando arrasta mas não consegue mudar na thread
@@ -178,7 +134,6 @@ public class Player {
             }
         };
 
-
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious,null, null, mouseClick ,scrubberMotion,"Tocador de musicas", null);
 
         window.start();
@@ -217,6 +172,46 @@ class PrevSong extends Thread{
         finally {
             player.lock.unlock();
         }
+    }
+}
+
+class PauseSong extends Thread{
+    Player player;
+    public PauseSong(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        try{
+            player.playing = !player.playing;
+            player.window.updatePlayPauseButton(player.playing);
+        }
+        finally {
+            player.lock.unlock();
+        }
+    }
+}
+class StopSong extends Thread{
+    Player player;
+    public StopSong(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+        try{
+            if(player.scrubber!=null && player.scrubber.isAlive()){
+                player.scrubber.interrupt();
+            }
+            player.window.resetMiniPlayer();
+
+        }
+        finally {
+            player.lock.unlock();
+        }
+
     }
 }
 
@@ -347,4 +342,45 @@ class RemoveSong extends Thread{
     }
 }
 
+class PlayNow extends Thread {
+    Player player;
+    public PlayNow (Player player) {
+        this.player= player;
+    }
+
+    @Override
+    public void run(){
+        player.lock.lock();
+
+        try {
+            player.playing = true;
+            player.window.updatePlayPauseButton(player.playing);
+            player.window.enableScrubberArea();
+
+            for (int i = 0; i < player.songIDs.length;i++){
+                if(player.songIDs[i] == player.window.getSelectedSongID()){
+                    player.selected = i;
+                    break;
+                }
+            }
+
+            //Inicia a reprodução da música e a thread
+            if(player.selected > -1){
+                player.currentSong = player.selected;
+                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+                player.window.updatePlayingSongInfo(
+                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+
+                if(player.scrubber!=null && player.scrubber.isAlive()){
+                    player.scrubber.interrupt();
+                }
+                player.scrubber = new Scrubber(player.window,player);
+                player.scrubber.start();
+            }
+        } finally {
+            player.lock.unlock();
+        }
+    }
+
+}
 
