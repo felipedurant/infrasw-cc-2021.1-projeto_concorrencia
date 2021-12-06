@@ -10,9 +10,70 @@ import java.awt.event.MouseMotionListener;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+
+class RemoveSong extends Thread{
+
+    Player player;
+    public RemoveSong(Player player){
+        this.player=player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+
+        try{
+            int remove = player.window.getSelectedSongID();
+            String[][] queueTemp = new String[player.songCount - 1][];
+            int[] songIDsTemp = new int[player.songCount - 1];
+
+
+            //Ajuda na varredura da lista de músicas
+            boolean skip = false;
+
+            //Verifica se a música removida está sendo, também, reproduzida
+            if(player.currentSong > -1 && player.songIDs[player.currentSong] == remove){
+                if(player.scrubber.isAlive())
+                    player.scrubber.interrupt();
+                player.window.resetMiniPlayer();
+            }
+
+            //Varredura da lista de músicas para achar a música que será removida
+            for (int i = 0; i < queueTemp.length;i++){
+                if(player.songIDs[i] == remove){
+                    skip = true;
+                }
+                if(!skip){
+                    queueTemp[i] = player.queueArray[i];
+                    songIDsTemp[i] = player.songIDs[i];
+                }
+                else{
+                    if(player.currentSong == i+1){
+                        System.out.println(player.currentSong);
+                        player.currentSong -=1;
+                        System.out.println(player.currentSong);
+                    }
+                    queueTemp[i] = player.queueArray[i+1];
+                    songIDsTemp[i] = player.songIDs[i+1];
+                }
+            }
+            player.window.updateQueueList(queueTemp);
+            player.queueArray=queueTemp;
+            player.songIDs=songIDsTemp;
+            player.songCount--;
+
+        }
+        finally {
+            player.lock.unlock();
+        }
+    }
+}
 
 public class Player {
+
+    public ReentrantLock lock = new ReentrantLock();
 
     AddSongWindow addSongWindow;
     PlayerWindow window;
@@ -57,45 +118,9 @@ public class Player {
         };
 
         ActionListener btnRemove = e -> {
-            // cria um array temp com uma posicao a mais e copia o antigo
-            int remove = window.getSelectedSongID();
-            String[][] queueTemp = new String[songCount - 1][];
-            int[] songIDsTemp = new int[songCount - 1];
 
-
-            //Ajuda na varredura da lista de músicas
-            boolean skip = false;
-
-            //Verifica se a música removida está sendo, também, reproduzida
-            if(currentSong > -1 && songIDs[currentSong] == remove){
-                if(scrubber.isAlive())
-                    scrubber.interrupt();
-                window.resetMiniPlayer();
-            }
-
-            //Varredura da lista de músicas para achar a música que será removida
-            for (int i = 0; i < queueTemp.length;i++){
-                if(songIDs[i] == remove){
-                    skip = true;
-                }
-                if(!skip){
-                    queueTemp[i] = queueArray[i];
-                    songIDsTemp[i] = songIDs[i];
-                }
-                else{
-                    if(currentSong == i+1){
-                        System.out.println(currentSong);
-                        currentSong -=1;
-                        System.out.println(currentSong);
-                    }
-                    queueTemp[i] = queueArray[i+1];
-                    songIDsTemp[i] = songIDs[i+1];
-                }
-            }
-            window.updateQueueList(queueTemp);
-            queueArray=queueTemp;
-            songIDs=songIDsTemp;
-            songCount--;
+            RemoveSong removeSong = new RemoveSong(this);
+            removeSong.start();
         };
 
         //Comando de adicionar música

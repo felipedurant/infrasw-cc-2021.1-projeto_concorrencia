@@ -31,10 +31,17 @@ public class Scrubber extends Thread {
         try{
             while (t < play.currentSongTime){
                 Thread.sleep(1000);
-                if(play.playing){
-                    t += 1;
+
+                meuLock.lock();
+                try{
+                    if(play.playing){
+                        t += 1;
+                    }
+                    wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
+
+                } finally {
+                    meuLock.unlock();
                 }
-                wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
             }
 
         }
