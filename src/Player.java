@@ -150,6 +150,8 @@ public class Player {
             public void mouseClicked(MouseEvent e) {
                 scrubber.meuLock.lock();
                 try {
+                    playing = true;
+                    window.updatePlayPauseButton(playing);
                     window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
                     scrubber.t = window.getScrubberValue();
                 } finally {
@@ -159,12 +161,25 @@ public class Player {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                scrubber.meuLock.lock();
+                try {
+                    playing = false;
+                    window.updatePlayPauseButton(playing);
+                } finally {
+                    scrubber.meuLock.unlock();
+                }
 
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-
+                scrubber.meuLock.lock();
+                try {
+                    playing = true;
+                    window.updatePlayPauseButton(playing);
+                } finally {
+                    scrubber.meuLock.unlock();
+                }
             }
 
             @Override
@@ -177,7 +192,6 @@ public class Player {
 
             }
         };
-
 
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious,null, null, mouseClick ,scrubberMotion,"Tocador de musicas", null);
 
