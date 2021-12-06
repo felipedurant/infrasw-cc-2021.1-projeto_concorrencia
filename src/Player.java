@@ -13,64 +13,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-class RemoveSong extends Thread{
-
-    Player player;
-    public RemoveSong(Player player){
-        this.player=player;
-    }
-
-    @Override
-    public void run() {
-        player.lock.lock();
-
-        try{
-            int remove = player.window.getSelectedSongID();
-            String[][] queueTemp = new String[player.songCount - 1][];
-            int[] songIDsTemp = new int[player.songCount - 1];
-
-
-            //Ajuda na varredura da lista de músicas
-            boolean skip = false;
-
-            //Verifica se a música removida está sendo, também, reproduzida
-            if(player.currentSong > -1 && player.songIDs[player.currentSong] == remove){
-                if(player.scrubber.isAlive())
-                    player.scrubber.interrupt();
-                player.window.resetMiniPlayer();
-            }
-
-            //Varredura da lista de músicas para achar a música que será removida
-            for (int i = 0; i < queueTemp.length;i++){
-                if(player.songIDs[i] == remove){
-                    skip = true;
-                }
-                if(!skip){
-                    queueTemp[i] = player.queueArray[i];
-                    songIDsTemp[i] = player.songIDs[i];
-                }
-                else{
-                    if(player.currentSong == i+1){
-                        System.out.println(player.currentSong);
-                        player.currentSong -=1;
-                        System.out.println(player.currentSong);
-                    }
-                    queueTemp[i] = player.queueArray[i+1];
-                    songIDsTemp[i] = player.songIDs[i+1];
-                }
-            }
-            player.window.updateQueueList(queueTemp);
-            player.queueArray=queueTemp;
-            player.songIDs=songIDsTemp;
-            player.songCount--;
-
-        }
-        finally {
-            player.lock.unlock();
-        }
-    }
-}
-
 public class Player {
 
     public ReentrantLock lock = new ReentrantLock();
@@ -96,25 +38,8 @@ public class Player {
 
         // botao que adiciona as musicas
         ActionListener btnAddSongOK = e ->{
-            // cria um array temp com uma posicao a mais e copia o antigo
-            String[][] queueTemp = new String[songCount+1][];
-            int[] songIDsTemp = new int[songCount + 1];
-
-            for (int i = 0; i < songCount;i++){
-                queueTemp[i] = queueArray[i];
-                songIDsTemp[i] = songIDs[i];
-            }
-            // adiciona a nova musica no array
-            queueTemp[songCount] = addSongWindow.getSong();
-            songIDsTemp[songCount] = songID;
-            // guarda no queueArray a lista atualizada
-            queueArray = queueTemp;
-            songIDs = songIDsTemp;
-            // atualiza a janela com a nova musica
-            window.updateQueueList(queueTemp);
-
-            songID++;
-            songCount++;
+            AddSongOK addSongOK = new AddSongOK(this);
+            addSongOK.start();
         };
 
         ActionListener btnRemove = e -> {
@@ -166,41 +91,13 @@ public class Player {
         };
 
         ActionListener btnNext = e -> {
-            selected += 1;
-
-            currentSong = selected;
-            //encerrando música que foi passada
-            if(scrubber!=null && scrubber.isAlive()){
-                scrubber.interrupt();
-            }
-            //iniciar próxima música
-            currentSongTime = Integer.parseInt(queueArray[selected][5]);
-            window.updatePlayingSongInfo(
-                    queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
-
-            scrubber = new Scrubber(window,this);
-            scrubber.start();
-            playing = true;
-
-
+            NextSong nextSong = new NextSong(this);
+            nextSong.start();
         };
 
         ActionListener btnPrevious = e -> {
-            selected -= 1;
-
-            currentSong = selected;
-            //encerrando música que foi passada
-            if(scrubber!=null && scrubber.isAlive()){
-                scrubber.interrupt();
-            }
-            //iniciar próxima música
-            currentSongTime = Integer.parseInt(queueArray[selected][5]);
-            window.updatePlayingSongInfo(
-                    queueArray[selected][0], queueArray[selected][1], queueArray[selected][2]);
-
-            scrubber = new Scrubber(window,this);
-            scrubber.start();
-            playing = true;
+            PrevSong prevSong = new PrevSong(this);
+            prevSong.start();
 
         };
 
@@ -267,6 +164,168 @@ public class Player {
         window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious,null, null, mouseClick ,scrubberMotion,"Tocador de musicas", null);
 
         window.start();
+    }
+}
+
+// Threads das ações dos botões
+
+class PrevSong extends Thread{
+    Player player;
+    public  PrevSong(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+        try{
+            player.selected -= 1;
+
+            player.currentSong = player.selected;
+            //encerrando música que foi passada
+            if(player.scrubber!=null && player.scrubber.isAlive()){
+                player.scrubber.interrupt();
+            }
+            //iniciar próxima música
+            player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+            player.window.updatePlayingSongInfo(
+                    player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+
+            player.scrubber = new Scrubber(player.window,player);
+            player.scrubber.start();
+            player.playing = true;
+
+        }
+        finally {
+            player.lock.unlock();
+        }
+    }
+}
+
+class NextSong extends Thread{
+    Player player;
+    public NextSong(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+        try{
+            player.selected += 1;
+
+            player.currentSong = player.selected;
+            //encerrando música que foi passada
+            if(player.scrubber!=null && player.scrubber.isAlive()){
+                player.scrubber.interrupt();
+            }
+            //iniciar próxima música
+            player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+            player.window.updatePlayingSongInfo(
+                    player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+
+            player.scrubber = new Scrubber(player.window,player);
+            player.scrubber.start();
+            player.playing = true;
+        }
+        finally {
+            player.lock.unlock();
+        }
+    }
+}
+
+class AddSongOK extends Thread{
+    Player player;
+    public AddSongOK(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+        try{
+            // cria um array temp com uma posicao a mais e copia o antigo
+            String[][] queueTemp = new String[player.songCount+1][];
+            int[] songIDsTemp = new int[player.songCount + 1];
+
+            for (int i = 0; i < player.songCount;i++){
+                queueTemp[i] = player.queueArray[i];
+                songIDsTemp[i] = player.songIDs[i];
+            }
+            // adiciona a nova musica no array
+            queueTemp[player.songCount] = player.addSongWindow.getSong();
+            songIDsTemp[player.songCount] = player.songID;
+            // guarda no queueArray a lista atualizada
+            player.queueArray = queueTemp;
+            player.songIDs = songIDsTemp;
+            // atualiza a janela com a nova musica
+            player.window.updateQueueList(queueTemp);
+
+            player.songID++;
+            player.songCount++;
+
+        }finally {
+            player.lock.unlock();
+        }
+    }
+}
+
+
+class RemoveSong extends Thread{
+
+    Player player;
+    public RemoveSong(Player player){
+        this.player=player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+
+        try{
+            int remove = player.window.getSelectedSongID();
+            String[][] queueTemp = new String[player.songCount - 1][];
+            int[] songIDsTemp = new int[player.songCount - 1];
+
+
+            //Ajuda na varredura da lista de músicas
+            boolean skip = false;
+
+            //Verifica se a música removida está sendo, também, reproduzida
+            if(player.currentSong > -1 && player.songIDs[player.currentSong] == remove){
+                if(player.scrubber.isAlive())
+                    player.scrubber.interrupt();
+                player.window.resetMiniPlayer();
+            }
+
+            //Varredura da lista de músicas para achar a música que será removida
+            for (int i = 0; i < queueTemp.length;i++){
+                if(player.songIDs[i] == remove){
+                    skip = true;
+                }
+                if(!skip){
+                    queueTemp[i] = player.queueArray[i];
+                    songIDsTemp[i] = player.songIDs[i];
+                }
+                else{
+                    if(player.currentSong == i+1){
+                        System.out.println(player.currentSong);
+                        player.currentSong -=1;
+                        System.out.println(player.currentSong);
+                    }
+                    queueTemp[i] = player.queueArray[i+1];
+                    songIDsTemp[i] = player.songIDs[i+1];
+                }
+            }
+            player.window.updateQueueList(queueTemp);
+            player.queueArray=queueTemp;
+            player.songIDs=songIDsTemp;
+            player.songCount--;
+
+        }
+        finally {
+            player.lock.unlock();
+        }
     }
 }
 
