@@ -1,3 +1,4 @@
+import org.jetbrains.annotations.NotNull;
 import ui.AddSongWindow;
 import ui.PlayerWindow;
 
@@ -6,9 +7,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 
 
 public class Player {
+
     AddSongWindow addSongWindow;
     PlayerWindow window;
 
@@ -186,8 +191,14 @@ public class Player {
             //Relativo a arrastar o slider
             @Override
             public void mouseDragged(MouseEvent e) {
-                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
-                scrubber.t = window.getScrubberValue();
+                scrubber.meuLock.lock();
+                try {
+                    window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+                    scrubber.t = window.getScrubberValue();
+                } finally {
+                    scrubber.meuLock.unlock();
+                }
+
             }
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -197,8 +208,13 @@ public class Player {
         MouseListener mouseClick = new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
-                scrubber.t = window.getScrubberValue();
+                scrubber.meuLock.lock();
+                try {
+                    window.updateMiniplayer(true,true,false,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+                    scrubber.t = window.getScrubberValue();
+                } finally {
+                    scrubber.meuLock.unlock();
+                }
             }
 
             @Override
