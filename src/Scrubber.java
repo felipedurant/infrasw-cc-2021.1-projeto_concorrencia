@@ -26,7 +26,7 @@ public class Scrubber extends Thread {
 
         t=0;
 
-        wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
+        wind.updateMiniplayer(true, play.playing, play.repeat,t, play.currentSongTime, play.currentSong, play.songCount);
 
         try{
             while (t < play.currentSongTime){
@@ -37,12 +37,26 @@ public class Scrubber extends Thread {
                     if(play.playing){
                         t += 1;
                     }
-                    wind.updateMiniplayer(true, play.playing, false,t, play.currentSongTime, play.currentSong, play.songCount);
+                    wind.updateMiniplayer(true, play.playing, play.repeat,t, play.currentSongTime, play.currentSong, play.songCount);
 
                 } finally {
+
                     meuLock.unlock();
                 }
             }
+            Thread.sleep(2000);
+            if (t == play.currentSongTime) {
+                if (play.songCount > play.selected + 1) {
+                    NextSong nextSong = new NextSong(play);
+                    nextSong.start();
+                    wind.updateMiniplayer(true, play.playing, play.repeat,t, play.currentSongTime, play.currentSong, play.songCount);
+                } else {
+                    StopSong stopSong = new StopSong(play);
+                    stopSong.start();
+                }
+
+            }
+
 
         }
 
