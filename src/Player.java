@@ -2,11 +2,14 @@ import org.jetbrains.annotations.NotNull;
 import ui.AddSongWindow;
 import ui.PlayerWindow;
 
+import java.util.Arrays;
+import java.util.List;
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -25,7 +28,8 @@ public class Player {
     int songID=0;
     boolean repeat = false;
     boolean shuffle = false;
-    boolean mudarMusicaEmShuffle = false;
+    boolean mudarMusicaEmRepeat = false;
+    int contador = 0;
 
     // contador de quantas musicas estão na lista
     int songCount = 0;
@@ -37,6 +41,8 @@ public class Player {
     public int currentSong = -1;
     public int selected = -1;
     public int currentSongTime = -1;
+    Random random = new Random();
+    public int[] queueRandom = new int[300];
 
     public Player() {
 
@@ -73,7 +79,7 @@ public class Player {
         };
 
         ActionListener btnNext = e -> {
-            mudarMusicaEmShuffle = true;
+            mudarMusicaEmRepeat = true;
             NextSong nextSong = new NextSong(this);
             nextSong.start();
         };
@@ -89,7 +95,7 @@ public class Player {
             stopSong.start();
         };
 
-        //Consegue mudar o tempo do relógio quando arrasta mas não consegue mudar na thread
+        //Consegue mudar o tempo do relógio quando arrasta
         MouseMotionListener scrubberMotion = new MouseMotionListener() {
             //Relativo a arrastar o slider
             @Override
@@ -107,7 +113,7 @@ public class Player {
             public void mouseMoved(MouseEvent e) {
             }
         };
-
+        //Modifica tempo do relógio ao clicar na barra e quando soltamos depois de arrastar
         MouseListener mouseClick = new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -159,14 +165,15 @@ public class Player {
         ActionListener btnRepeat = e -> {
 
             repeat = !repeat;
-            window.updateMiniplayer(true,true,!repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+            window.updateMiniplayer(true,playing,!repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
 
         };
 
         ActionListener btnShuffle = e -> {
 
             shuffle = !shuffle;
-            window.updateMiniplayer(true,true,repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
+
+            window.updateMiniplayer(true,playing,repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
 
         };
 
@@ -188,6 +195,8 @@ class PrevSong extends Thread{
     public void run() {
         player.lock.lock();
         try{
+            //Adicionar comando para seguir a lista aleatória quando voltar
+
             player.selected -= 1;
 
             player.currentSong = player.selected;
@@ -262,27 +271,42 @@ class NextSong extends Thread{
         player.lock.lock();
         try{
             if (player.songCount > player.selected + 1){
-                if (player.repeat == false) {
+                if (!player.repeat || player.mudarMusicaEmRepeat) {
                     player.selected += 1;
                 }
-                if (player.repeat == true && player.mudarMusicaEmShuffle == true) {
-                    player.selected += 1;
+                if (player.shuffle) {
+                    player.selected = player.random.nextInt(player.songCount);
+                    //tentativa de uma implementação melhor de shuffle
+//                    do {
+//                        player.selected = player.random.nextInt(player.songCount);
+//                    } while (Arrays.asList(player.queueRandom).contains(player.selected) == true); {
+//                        player.selected = player.random.nextInt(player.songCount);
+//                    }
+//                    player.queueRandom[player.contador] = player.selected;
+//                    player.contador ++;
                 }
-                player.currentSong = player.selected;
-                //encerrando música que foi passada
-                if(player.scrubber!=null && player.scrubber.isAlive()){
-                    player.scrubber.interrupt();
-                }
-                //iniciar próxima música
-                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
-                player.window.updatePlayingSongInfo(
-                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
 
-                player.scrubber = new Scrubber(player.window,player);
-                player.scrubber.start();
-                player.playing = true;
-                player.mudarMusicaEmShuffle = false;
-            }
+                    //execução normal sem shuffle
+                    player.currentSong = player.selected;
+                    //encerrando música que foi passada
+                    if(player.scrubber!=null && player.scrubber.isAlive()){
+                        player.scrubber.interrupt();
+                    }
+                    //iniciar próxima música
+
+                    //Atualizar o tempo da nova música
+                    player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+                    //Atualizar informações da nova música
+                    player.window.updatePlayingSongInfo(
+                            player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+
+                    player.scrubber = new Scrubber(player.window,player);
+                    player.scrubber.start();
+                    player.playing = true;
+                    player.mudarMusicaEmRepeat = false;
+                }
+
+
 
         }
         finally {
