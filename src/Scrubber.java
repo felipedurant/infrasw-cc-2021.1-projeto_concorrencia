@@ -29,7 +29,8 @@ public class Scrubber extends Thread {
         wind.updateMiniplayer(true, play.playing, play.repeat,t, play.currentSongTime, play.currentSong, play.songCount);
 
         try{
-            while (t < play.currentSongTime){
+            //tempo da musica correndo
+            while (t < play.currentSongTime || !play.playing){
                 Thread.sleep(1000);
 
                 meuLock.lock();
@@ -44,22 +45,13 @@ public class Scrubber extends Thread {
                     meuLock.unlock();
                 }
             }
-            Thread.sleep(2000);
-            if (t == play.currentSongTime) {
-                if (play.songCount > play.selected + 1) {
-                    NextSong nextSong = new NextSong(play);
-                    nextSong.start();
-                    wind.updateMiniplayer(true, play.playing, play.repeat,t, play.currentSongTime, play.currentSong, play.songCount);
-                } else {
-                    StopSong stopSong = new StopSong(play);
-                    stopSong.start();
-                }
+            Thread.sleep(1000);
 
-            }
-
+            // inicia a thread que vai checar o que fazer agora que a música terminou
+            SongFinished songFinished = new SongFinished(play);
+            songFinished.start();
 
         }
-
         catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -28,7 +28,7 @@ public class Player {
     int songID=0;
     boolean repeat = false;
     boolean shuffle = false;
-    boolean mudarMusicaEmRepeat = false;
+    //boolean mudarMusicaEmRepeat = false;
     int contador = 0;
 
     // contador de quantas musicas estão na lista
@@ -47,7 +47,6 @@ public class Player {
     public Player() {
 
         //Comportamento normal de um player
-
 
         // botao que adiciona as musicas
         ActionListener btnAddSongOK = e ->{
@@ -79,7 +78,7 @@ public class Player {
         };
 
         ActionListener btnNext = e -> {
-            mudarMusicaEmRepeat = true;
+            //mudarMusicaEmRepeat = true;
             NextSong nextSong = new NextSong(this);
             nextSong.start();
         };
@@ -163,21 +162,19 @@ public class Player {
         };
 
         ActionListener btnRepeat = e -> {
-
             repeat = !repeat;
             window.updateMiniplayer(true,playing,!repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
 
         };
 
         ActionListener btnShuffle = e -> {
-
             shuffle = !shuffle;
 
             window.updateMiniplayer(true,playing,repeat,window.getScrubberValue(),currentSongTime,currentSong,songCount);
 
         };
 
-        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious,btnShuffle,btnRepeat , mouseClick ,scrubberMotion,"Tocador de musicas", null);
+        window = new PlayerWindow(btnPlayNow, btnRemove, btnAddSong,btnPlayPause, btnStop, btnNext, btnPrevious, btnShuffle,btnRepeat , mouseClick ,scrubberMotion,"Tocador de musicas", null);
 
         window.start();
     }
@@ -185,6 +182,7 @@ public class Player {
 
 // Threads das ações dos botões
 
+// thread quando o botao de musica anterior e apertado prioriza o shuffle
 class PrevSong extends Thread{
     Player player;
     public  PrevSong(Player player){
@@ -195,9 +193,14 @@ class PrevSong extends Thread{
     public void run() {
         player.lock.lock();
         try{
-            //Adicionar comando para seguir a lista aleatória quando voltar
-
-            player.selected -= 1;
+            if(player.shuffle){
+                if(player.songCount > 1){
+                    int rand = player.random.nextInt(player.songCount - 1);
+                    player.selected = rand >= player.selected ? rand+1 : rand;
+                }
+            }else{
+                player.selected = Math.max(0, player.selected - 1);
+            }
 
             player.currentSong = player.selected;
             //encerrando música que foi passada
@@ -220,6 +223,7 @@ class PrevSong extends Thread{
     }
 }
 
+// Thread de quando a musica e pausada
 class PauseSong extends Thread{
     Player player;
     public PauseSong(Player player){
@@ -228,6 +232,7 @@ class PauseSong extends Thread{
 
     @Override
     public void run() {
+        player.lock.lock();
         try{
             player.playing = !player.playing;
             player.window.updatePlayPauseButton(player.playing);
@@ -237,6 +242,8 @@ class PauseSong extends Thread{
         }
     }
 }
+
+// thread de parar a musica e reiniciar o miniplayer
 class StopSong extends Thread{
     Player player;
     public StopSong(Player player){
@@ -260,6 +267,60 @@ class StopSong extends Thread{
     }
 }
 
+// Thread que é iniciada quando a música encerra prioriza o repeat
+class SongFinished extends Thread{
+    Player player;
+    public SongFinished(Player player){
+        this.player = player;
+    }
+
+    @Override
+    public void run() {
+        player.lock.lock();
+        try{
+            // so vai atualizar o index da musica a ser tocada se nao tiver em repeat
+            if(!player.repeat){
+                if(player.shuffle){
+                    //randomiza a proxima musica a ser tocada
+                    if(player.songCount > 1){
+                        int rand = player.random.nextInt(player.songCount - 1);
+                        player.selected = rand >= player.selected ? rand+1 : rand;
+                    }
+                }else{
+                    // vai para a proxima musica
+                    player.selected +=1;
+                }
+            }
+
+            // se o index estiver disponivel tocar a musica
+            if (player.songCount > player.selected ){
+                player.currentSong = player.selected;
+                //encerrando música que foi passada
+                if(player.scrubber!=null && player.scrubber.isAlive()){
+                    player.scrubber.interrupt();
+                }
+                //iniciar próxima música
+                //Atualizar o tempo da nova música
+                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+                //Atualizar informações da nova música
+                player.window.updatePlayingSongInfo(
+                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+                player.scrubber = new Scrubber(player.window,player);
+                player.scrubber.start();
+                player.playing = true;
+            }else{
+                StopSong stopSong = new StopSong(player );
+                stopSong.start();
+            }
+        }
+        finally {
+            player.lock.unlock();
+        }
+    }
+
+}
+
+// thread quando o botao de proxima musica e apertado prioriza o shuffle
 class NextSong extends Thread{
     Player player;
     public NextSong(Player player){
@@ -270,44 +331,38 @@ class NextSong extends Thread{
     public void run() {
         player.lock.lock();
         try{
-            if (player.songCount > player.selected + 1){
-                if (!player.repeat || player.mudarMusicaEmRepeat) {
-                    player.selected += 1;
+            // checa se o shuffle ta ligado, se sim achar a proxima muscia
+            if(player.shuffle){
+                if(player.songCount > 1){
+                    int rand = player.random.nextInt(player.songCount - 1);
+                    player.selected = rand >= player.selected ? rand+1 : rand;
                 }
-                if (player.shuffle) {
-                    player.selected = player.random.nextInt(player.songCount);
-                    //tentativa de uma implementação melhor de shuffle
-//                    do {
-//                        player.selected = player.random.nextInt(player.songCount);
-//                    } while (Arrays.asList(player.queueRandom).contains(player.selected) == true); {
-//                        player.selected = player.random.nextInt(player.songCount);
-//                    }
-//                    player.queueRandom[player.contador] = player.selected;
-//                    player.contador ++;
+            }else{
+                //se nao tiver shuffle, vai para a proxima musica
+                player.selected +=1;
+            }
+
+            // se o index da musica selecionada estiver disponivel tocar ela
+            if (player.songCount > player.selected ){
+                player.currentSong = player.selected;
+                //encerrando música que foi passada
+                if(player.scrubber!=null && player.scrubber.isAlive()){
+                    player.scrubber.interrupt();
                 }
-
-                    //execução normal sem shuffle
-                    player.currentSong = player.selected;
-                    //encerrando música que foi passada
-                    if(player.scrubber!=null && player.scrubber.isAlive()){
-                        player.scrubber.interrupt();
-                    }
-                    //iniciar próxima música
-
-                    //Atualizar o tempo da nova música
-                    player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
-                    //Atualizar informações da nova música
-                    player.window.updatePlayingSongInfo(
-                            player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
-
-                    player.scrubber = new Scrubber(player.window,player);
-                    player.scrubber.start();
-                    player.playing = true;
-                    player.mudarMusicaEmRepeat = false;
-                }
-
-
-
+                //iniciar próxima música
+                //Atualizar o tempo da nova música
+                player.currentSongTime = Integer.parseInt(player.queueArray[player.selected][5]);
+                //Atualizar informações da nova música
+                player.window.updatePlayingSongInfo(
+                        player.queueArray[player.selected][0], player.queueArray[player.selected][1], player.queueArray[player.selected][2]);
+                player.scrubber = new Scrubber(player.window,player);
+                player.scrubber.start();
+                player.playing = true;
+            }else{
+                // se nao tiver proxima musica parar
+                StopSong stopSong = new StopSong(player);
+                stopSong.start();
+            }
         }
         finally {
             player.lock.unlock();
@@ -351,7 +406,7 @@ class AddSongOK extends Thread{
     }
 }
 
-
+// iniciada quando o botao de remover musica e apertado
 class RemoveSong extends Thread{
 
     Player player;
@@ -368,6 +423,13 @@ class RemoveSong extends Thread{
             String[][] queueTemp = new String[player.songCount - 1][];
             int[] songIDsTemp = new int[player.songCount - 1];
 
+            // acha o index da musica removida
+            int removedIndex = 0;
+            for (int i =0; i < player.songCount; i++){
+                if(remove == player.songIDs[i]){
+                    removedIndex = i;
+                }
+            }
 
             //Ajuda na varredura da lista de músicas
             boolean skip = false;
@@ -377,6 +439,9 @@ class RemoveSong extends Thread{
                 if(player.scrubber.isAlive())
                     player.scrubber.interrupt();
                 player.window.resetMiniPlayer();
+            }else if(removedIndex < player.currentSong){
+                // atualiza o index da musica atual se a removida foi anterior a ela
+                player.currentSong = Math.max(0, player.currentSong-1);
             }
 
             //Varredura da lista de músicas para achar a música que será removida
@@ -389,15 +454,11 @@ class RemoveSong extends Thread{
                     songIDsTemp[i] = player.songIDs[i];
                 }
                 else{
-                    if(player.currentSong == i+1){
-                        System.out.println(player.currentSong);
-                        player.currentSong -=1;
-                        System.out.println(player.currentSong);
-                    }
                     queueTemp[i] = player.queueArray[i+1];
                     songIDsTemp[i] = player.songIDs[i+1];
                 }
             }
+
             player.window.updateQueueList(queueTemp);
             player.queueArray=queueTemp;
             player.songIDs=songIDsTemp;
@@ -410,6 +471,7 @@ class RemoveSong extends Thread{
     }
 }
 
+// iniciada quando play now e apertado
 class PlayNow extends Thread {
     Player player;
     public PlayNow (Player player) {
@@ -425,6 +487,7 @@ class PlayNow extends Thread {
             player.window.updatePlayPauseButton(player.playing);
             player.window.enableScrubberArea();
 
+            // acha a musica selecionada
             for (int i = 0; i < player.songIDs.length;i++){
                 if(player.songIDs[i] == player.window.getSelectedSongID()){
                     player.selected = i;
